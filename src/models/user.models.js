@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
 //I cannot create do it directly , so to do so I need to create one middleware
 //I want the middle ware to handle so tasks before the user submits the password.
 userSchema.pre("save", async function (next) {
-  if(!this.isModified("password")){
+  if (!this.isModified("password")) {
     return next();
   }
   this.password = bcrypt.hash(this.password);
@@ -62,15 +62,47 @@ userSchema.pre("save", async function (next) {
 
 //now I need to compare the password of the user from the hashed password ,that I got from bcrypt.
 //So to do so I need to use methods . Since the schema provides access to many methods .
-userSchema.methods.comparePassword = async function(password){
+userSchema.methods.comparePassword = async function (password) {
   try {
-    await bcrypt.compare(password,this.password) //bcrypt provides a method to compare the original password and the hashed password . that is .compare method.
-    
+    return await bcrypt.compare(password, this.password); //bcrypt provides a method to compare the original password and the hashed password . that is .compare method.
   } catch (error) {
-    console.log('There is an error while comparing the original and hashed password',error);
+    console.log(
+      "There is an error while comparing the original and hashed password",
+      error
+    );
     throw error;
-    
   }
-}
+};
+
+//Now Iam creating a generatingToken method to generate token using jwt.
+
+userSchema.methods.generateAccessToken = function () {
+  Jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      username: this.username,
+      fullname: this.fullname,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_REJECT,
+    }
+  );
+};
+
+//Now creating refresh token
+
+userSchema.methods.generateRefereshToken = function () {
+  jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFERESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFERESH_TOKEN_REJECT,
+    }
+  );
+};
 
 export const User = mongoose.model("User", userSchema);
